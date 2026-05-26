@@ -1,0 +1,25 @@
+{
+  "name": "pi-ask-first",
+  "version": "0.1.0",
+  "description": "Ask-first permission gate extension for Pi",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "permissions",
+    "ask-first"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ]
+}
