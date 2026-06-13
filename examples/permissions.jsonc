@@ -1,0 +1,23 @@
+{
+  // Unknown or side-effectful tools ask by default.
+  "defaultPolicy": "ask",
+  "tools": {
+    "read": "allow",
+    "ls": "allow",
+    "grep": "allow",
+    "write": "ask",
+    "edit": "ask",
+    "bash": "ask",
+    "mcp": "ask"
+  },
+  "bash": {
+    "safeCommands": ["pwd", "ls", "cat", "grep", "rg", "find"],
+    "dangerousPatterns": ["rm -rf", "sudo", "chmod -R", "curl | sh", "dd "]
+  },
+  "paths": {
+    "outsideProject": "ask",
+    "homeDirectory": "ask",
+    "systemDirectories": "deny"
+  },
+  "remembered": {}
+}

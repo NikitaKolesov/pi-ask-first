@@ -2,6 +2,14 @@
   "name": "pi-ask-first",
   "version": "0.1.0",
   "description": "Ask-first permission gate extension for Pi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NikitaKolesov/pi-ask-first.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NikitaKolesov/pi-ask-first/issues"
+  },
+  "homepage": "https://github.com/NikitaKolesov/pi-ask-first#readme",
   "keywords": [
     "pi-package",
     "pi-extension",
@@ -10,6 +18,9 @@
   ],
   "license": "MIT",
   "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
@@ -20,6 +31,7 @@
   },
   "files": [
     "extensions",
+    "examples",
     "README.md"
   ]
 }

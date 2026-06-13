@@ -85,7 +85,7 @@ Choices:
 - Always allow this exact action
 - Always deny this exact action
 
-Remembered decisions are stored in the project policy file at `.pi/permissions.jsonc`.
+Remembered decisions are stored in the project policy file at `.pi/permissions.jsonc`. This file is intended to be local state and should usually stay out of version control.
 
 ## Commands
 
@@ -135,7 +135,7 @@ Project policy file:
 
 Project policy overrides global policy.
 
-Example:
+Example (also available at `examples/permissions.jsonc`):
 
 ```jsonc
 {
@@ -168,6 +168,7 @@ Default policy:
 - `read`, `ls`, `grep`: allow
 - `bash`, `write`, `edit`, `mcp`: ask
 - simple read-only `bash` commands targeting the project directory: allow, except in strict mode
+- complex shell syntax, shell control operators, glob patterns, and ambiguous paths: ask
 - unknown tools: ask
 - outside-project paths: ask
 - sensitive home paths: ask and high risk
@@ -203,4 +204,4 @@ pi install .
 
 This extension is a permission prompt, not a sandbox. Pi extensions run with your full user privileges and can execute arbitrary code. Only install extensions from sources you trust.
 
-This extension also does not guarantee protection from malicious extensions or from all possible command encodings. Review high-risk prompts carefully.
+This extension also does not guarantee protection from malicious extensions or from all possible command encodings. Shell command analysis is conservative but not a complete shell parser. Review high-risk prompts carefully.
