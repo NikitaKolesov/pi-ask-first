@@ -22,12 +22,25 @@ function loadPolicy(cwd: string): Policy {
   return mergePolicy(mergePolicy(DEFAULT_POLICY, readJsonc(GLOBAL_POLICY)), readJsonc(path.join(cwd, PROJECT_POLICY))) as Policy;
 }
 
-function saveProjectPolicy(cwd: string, policy: Policy) {
+function writeProjectPolicyPatch(cwd: string, patch: Partial<Policy>) {
   const file = path.join(cwd, PROJECT_POLICY);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const existing = readJsonc(file);
-  const next = { ...existing, defaultPolicy: policy.defaultPolicy, tools: policy.tools, bash: policy.bash, paths: policy.paths, remembered: policy.remembered };
-  fs.writeFileSync(file, JSON.stringify(next, null, 2) + "\n");
+  fs.writeFileSync(file, JSON.stringify({ ...existing, ...patch }, null, 2) + "\n");
+}
+
+function saveRememberedDecision(cwd: string, key: string, decision: Decision) {
+  const file = path.join(cwd, PROJECT_POLICY);
+  const existing = readJsonc(file);
+  writeProjectPolicyPatch(cwd, { remembered: { ...(existing.remembered ?? {}), [key]: decision } });
+}
+
+function clearRememberedDecisions(cwd: string) {
+  writeProjectPolicyPatch(cwd, { remembered: {} });
+}
+
+function savePolicyMode(cwd: string, defaultPolicy: Decision, tools: Record<string, Decision>) {
+  writeProjectPolicyPatch(cwd, { defaultPolicy, tools });
 }
 
 export default function (pi: ExtensionAPI) {
@@ -70,8 +83,8 @@ export default function (pi: ExtensionAPI) {
     ].join("\n");
     const choice = await ctx.ui.select(prompt, ["Allow for this session", "Deny once", "Always allow this exact action", "Always deny this exact action"]);
     if (choice === "Allow for this session") { sessionMemo.set(key, "allow"); return undefined; }
-    if (choice === "Always allow this exact action") { current.remembered[key] = "allow"; saveProjectPolicy(ctx.cwd, current); return undefined; }
-    if (choice === "Always deny this exact action") { current.remembered[key] = "deny"; saveProjectPolicy(ctx.cwd, current); }
+    if (choice === "Always allow this exact action") { current.remembered[key] = "allow"; saveRememberedDecision(ctx.cwd, key, "allow"); return undefined; }
+    if (choice === "Always deny this exact action") { current.remembered[key] = "deny"; saveRememberedDecision(ctx.cwd, key, "deny"); }
     return { block: true, reason: "Blocked by user" };
   });
 
@@ -85,7 +98,7 @@ export default function (pi: ExtensionAPI) {
       if (cmd === "reset") {
         policy.remembered = {};
         sessionMemo.clear();
-        saveProjectPolicy(ctx.cwd, policy);
+        clearRememberedDecisions(ctx.cwd);
         ctx.ui.notify("Ask-first remembered decisions reset", "info");
         return;
       }
@@ -94,7 +107,7 @@ export default function (pi: ExtensionAPI) {
         else if (value === "strict") { policy.defaultPolicy = "ask"; policy.tools = Object.fromEntries(Object.keys(policy.tools).map((tool) => [tool, "ask" as Decision])); }
         else if (value === "permissive") { policy.defaultPolicy = "allow"; policy.tools = { ...DEFAULT_POLICY.tools, bash: "ask", write: "ask", edit: "ask", mcp: "ask" }; }
         else { ctx.ui.notify("Usage: /permissions mode ask-first|strict|permissive", "error"); return; }
-        saveProjectPolicy(ctx.cwd, policy);
+        savePolicyMode(ctx.cwd, policy.defaultPolicy, policy.tools);
         ctx.ui.notify(`Ask-first mode set to ${value}`, "info");
         return;
       }
