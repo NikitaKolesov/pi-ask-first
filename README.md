@@ -19,20 +19,6 @@ The extension intercepts Pi `tool_call` events before execution and applies `all
 
 ## Installation
 
-### From npm
-
-After this package is published to npm:
-
-```bash
-pi install npm:pi-ask-first
-```
-
-Or pin a version:
-
-```bash
-pi install npm:pi-ask-first@0.1.0
-```
-
 ### From GitHub
 
 ```bash
