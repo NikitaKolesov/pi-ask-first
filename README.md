@@ -80,7 +80,7 @@ For actions that require approval, Pi will show a prompt with:
 
 Choices:
 
-- Allow once
+- Allow for this session
 - Deny once
 - Always allow this exact action
 - Always deny this exact action

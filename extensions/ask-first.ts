@@ -223,8 +223,8 @@ export default function (pi: ExtensionAPI) {
       "",
       truncate(String(info.preview)),
     ].join("\n");
-    const choice = await ctx.ui.select(prompt, ["Allow once", "Deny once", "Always allow this exact action", "Always deny this exact action"]);
-    if (choice === "Allow once") { sessionMemo.set(key, "allow"); return undefined; }
+    const choice = await ctx.ui.select(prompt, ["Allow for this session", "Deny once", "Always allow this exact action", "Always deny this exact action"]);
+    if (choice === "Allow for this session") { sessionMemo.set(key, "allow"); return undefined; }
     if (choice === "Always allow this exact action") { current.remembered[key] = "allow"; saveProjectPolicy(ctx.cwd, current); return undefined; }
     if (choice === "Always deny this exact action") { current.remembered[key] = "deny"; saveProjectPolicy(ctx.cwd, current); }
     return { block: true, reason: "Blocked by user" };
