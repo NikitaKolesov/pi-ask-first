@@ -19,10 +19,14 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
   },
   "pi": {
     "extensions": [

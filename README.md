@@ -178,14 +178,33 @@ High-risk actions are still prompted even if a broad policy would otherwise allo
 
 ## Development
 
+This project uses [pnpm](https://pnpm.io/) as its package manager.
+
+Install dependencies with:
+
+```bash
+pnpm install
+```
+
 Package layout:
 
 ```text
 pi-ask-first/
   package.json
   README.md
+  tsconfig.json
   extensions/
     ask-first.ts
+    policy.js
+  tests/
+    policy.test.mjs
+```
+
+Run tests and type checks with:
+
+```bash
+pnpm test
+pnpm typecheck
 ```
 
 Test locally with:
