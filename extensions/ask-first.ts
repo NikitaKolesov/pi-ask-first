@@ -14,6 +14,16 @@ type Policy = {
   remembered: Record<string, Decision>;
 };
 
+type ActionSummary = {
+  action: string;
+  target: string;
+  preview: string;
+  risk: Risk;
+  note?: string;
+  pathDecision?: Decision;
+  safeReadOnlyBash?: boolean;
+};
+
 const DEFAULT_POLICY: Policy = {
   defaultPolicy: "ask",
   tools: {
@@ -73,8 +83,27 @@ function saveProjectPolicy(cwd: string, policy: Policy) {
   fs.writeFileSync(file, JSON.stringify(next, null, 2) + "\n");
 }
 
-function firstWord(command: string): string {
-  return command.trim().split(/\s+/)[0] ?? "";
+function shellWords(command: string): string[] | undefined {
+  const words: string[] = [];
+  let current = "";
+  let quote: "'" | "\"" | undefined;
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
+    if (quote) {
+      if (ch === quote) quote = undefined;
+      else current += ch;
+      continue;
+    }
+    if (ch === "'" || ch === "\"") { quote = ch; continue; }
+    if (/\s/.test(ch)) {
+      if (current) { words.push(current); current = ""; }
+      continue;
+    }
+    current += ch;
+  }
+  if (quote) return undefined;
+  if (current) words.push(current);
+  return words;
 }
 
 function truncate(value: string, max = 900): string {
@@ -103,12 +132,53 @@ function classifyPath(raw: string | undefined, cwd: string, policy: Policy): { d
   return { risk: "medium" };
 }
 
-function summarize(toolName: string, input: any, cwd: string, policy: Policy) {
+const BASH_CONTROL_CHARS = /[;&|`$<>\\]/;
+const FIND_DANGEROUS_FLAGS = new Set(["-delete", "-exec", "-execdir", "-ok", "-okdir", "-fls", "-fprint", "-fprint0", "-fprintf"]);
+
+function isOption(word: string): boolean {
+  return word.startsWith("-") && word !== "-";
+}
+
+function isProjectLocalPath(raw: string, cwd: string): boolean {
+  if (!raw || raw.startsWith("-")) return true;
+  if (raw.includes("*") || raw.includes("?") || raw.includes("[")) return false;
+  const resolved = path.resolve(cwd, raw.replace(/^~(?=$|\/)/, os.homedir()));
+  const full = fs.existsSync(resolved) ? fs.realpathSync(resolved) : resolved;
+  const root = fs.existsSync(cwd) ? fs.realpathSync(cwd) : path.resolve(cwd);
+  return full === root || full.startsWith(root + path.sep);
+}
+
+function isSafeProjectLocalBash(command: string, cwd: string, policy: Policy): boolean {
+  if (BASH_CONTROL_CHARS.test(command)) return false;
+  const words = shellWords(command);
+  if (!words?.length) return false;
+  const cmd = words[0];
+  if (!policy.bash.safeCommands.includes(cmd)) return false;
+  if (policy.bash.dangerousPatterns.some((p) => command.toLowerCase().includes(p.toLowerCase()))) return false;
+  if (cmd === "pwd") return words.length === 1;
+  if (cmd === "find") {
+    if (words.some((w) => FIND_DANGEROUS_FLAGS.has(w))) return false;
+    const firstPredicate = words.findIndex((w, index) => index > 0 && (isOption(w) || ["!", "(", ")"].includes(w)));
+    const initialPaths = firstPredicate === 1 ? ["."] : words.slice(1, firstPredicate === -1 ? undefined : firstPredicate);
+    return initialPaths.every((arg) => isProjectLocalPath(arg, cwd));
+  }
+
+  let pathArgs: string[] = [];
+  if (["grep", "rg"].includes(cmd)) {
+    const nonOptions = words.slice(1).filter((w) => !isOption(w));
+    pathArgs = nonOptions.slice(1).filter((w) => w.includes(path.sep) || w === "." || w === ".." || w.startsWith("~"));
+  } else {
+    pathArgs = words.slice(1).filter((w) => !isOption(w));
+  }
+  return pathArgs.every((arg) => isProjectLocalPath(arg, cwd));
+}
+
+function summarize(toolName: string, input: any, cwd: string, policy: Policy): ActionSummary {
   if (toolName === "bash") {
     const command = String(input.command ?? "");
-    const safe = policy.bash.safeCommands.includes(firstWord(command));
+    const safe = isSafeProjectLocalBash(command, cwd, policy);
     const dangerous = policy.bash.dangerousPatterns.some((p) => command.toLowerCase().includes(p.toLowerCase()));
-    return { action: "Run shell command", target: command, preview: command, risk: dangerous ? "high" as Risk : safe ? "low" as Risk : "medium" as Risk };
+    return { action: "Run shell command", target: command, preview: command, risk: dangerous ? "high" as Risk : safe ? "low" as Risk : "medium" as Risk, safeReadOnlyBash: safe };
   }
   const filePath = input.path ?? input.file;
   const p = classifyPath(filePath, cwd, policy);
@@ -138,6 +208,7 @@ export default function (pi: ExtensionAPI) {
 
     const info = summarize(event.toolName, event.input, ctx.cwd, current);
     let decision: Decision = info.pathDecision ?? current.tools[event.toolName] ?? (event.toolName.startsWith("mcp") ? current.tools.mcp : current.defaultPolicy);
+    if (event.toolName === "bash" && info.safeReadOnlyBash) decision = current.tools.read ?? "allow";
     if (info.risk === "high" && decision === "allow") decision = "ask";
     if (decision === "allow") return undefined;
     if (decision === "deny") return { block: true, reason: `Blocked by ask-first policy (${info.note ?? "policy deny"})` };

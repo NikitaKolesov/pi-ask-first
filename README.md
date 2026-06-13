@@ -8,6 +8,7 @@ The extension intercepts Pi `tool_call` events before execution and applies `all
 
 - Allows safe read-only tools by default.
 - Asks before side-effectful tools such as `bash`, `write`, and `edit`.
+- Allows simple project-local read-only shell commands such as `ls`, `grep`, `rg`, and safe `find` forms.
 - Prompts with tool name, action summary, target, risk level, and preview.
 - Highlights high-risk shell commands such as `rm -rf`, `sudo`, `dd`, destructive chmods, and pipe-to-shell patterns.
 - Raises risk for file operations outside the current project or in sensitive home paths.
@@ -166,6 +167,7 @@ Default policy:
 
 - `read`, `ls`, `grep`: allow
 - `bash`, `write`, `edit`, `mcp`: ask
+- simple read-only `bash` commands targeting the project directory: allow, except in strict mode
 - unknown tools: ask
 - outside-project paths: ask
 - sensitive home paths: ask and high risk
