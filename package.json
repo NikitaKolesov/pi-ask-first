@@ -30,7 +30,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions"
+      "./extensions/ask-first.ts"
     ]
   },
   "files": [
